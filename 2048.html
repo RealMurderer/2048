@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>2048 Game</title>
+<style>
+  body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #cdc1b4;
+    height: 100vh;
+    margin: 0;
+    font-family: 'Arial', sans-serif;
+  }
+  #game-container {
+    position: relative;
+    width: 400px;
+    height: 400px;
+    background: #cdc1b4;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: repeat(4, 1fr);
+    gap: 10px;
+    padding: 10px;
+    border: 10px solid #bbada0;
+    box-sizing: border-box;
+  }
+  .tile {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: bold;
+    font-size: 2em;
+    border-radius: 5px;
+    transition: all 0.2s ease;
+  }
+  .tile-2 { background: #eee4da; color: #776e65; }
+  .tile-4 { background: #ede0c8; color: #776e65; }
+  .tile-8 { background: #f2b179; color: #f9f6f2; }
+  .tile-16 { background: #f59563; color: #f9f6f2; }
+  .tile-32 { background: #f67c5f; color: #f9f6f2; }
+  .tile-64 { background: #f65e3b; color: #f9f6f2; }
+  .tile-128 { background: #edcf72; color: #f9f6f2; }
+  .tile-256 { background: #edcc61; color: #f9f6f2; }
+  .tile-512 { background: #edc850; color: #f9f6f2; }
+  .tile-1024 { background: #edc53f; color: #f9f6f2; }
+  .tile-2048 { background: #edc22e; color: #f9f6f2; }
+</style>
+</head>
+<body>
+<div id="game-container"></div>
+
+<script>
+const ROWS = 4;
+const COLS = 4;
+let tiles = {};
+
+function createTile(value, row, col) {
+    const tile = document.createElement('div');
+    tile.classList.add('tile', `tile-${value}`);
+    tile.textContent = value;
+    tile.dataset.row = row;
+    tile.dataset.col = col;
+    tile.dataset.value = value;
+    tile.style.gridRowStart = row + 1;
+    tile.style.gridColumnStart = col + 1;
+    document.getElementById('game-container').appendChild(tile);
+    return tile;
+}
+
+function drawTiles() {
+    const container = document.getElementById('game-container');
+    container.innerHTML = '';
+    for (const key in tiles) {
+        const { value, row, col } = tiles[key];
+        createTile(value, row, col);
+    }
+}
+
+function getRandomPos() {
+    let row, col;
+    while (true) {
+        row = Math.floor(Math.random() * ROWS);
+        col = Math.floor(Math.random() * COLS);
+        if (!tiles[`${row}${col}`]) break;
+    }
+    return [row, col];
+}
+
+function addRandomTile() {
+    const [row, col] = getRandomPos();
+    const value = Math.random() < 0.9 ? 2 : 4;
+    tiles[`${row}${col}`] = { value, row, col };
+}
+
+function move(direction) {
+    let moved = false;
+    let mergedPositions = new Set();
+
+    const getKey = (r, c) => `${r}${c}`;
+
+    const iterate = (callback) => {
+        if (direction === 'left' || direction === 'up') {
+            for (let r = 0; r < ROWS; r++) {
+                for (let c = 0; c < COLS; c++) callback(r, c);
+            }
+        } else {
+            for (let r = ROWS - 1; r >= 0; r--) {
+                for (let c = COLS - 1; c >= 0; c--) callback(r, c);
+            }
+        }
+    }
+
+    iterate((r, c) => {
+        const key = getKey(r, c);
+        if (!tiles[key]) return;
+        let tile = tiles[key];
+        let nr = r, nc = c;
+
+        const step = {
+            'left': [0, -1],
+            'right': [0, 1],
+            'up': [-1, 0],
+            'down': [1, 0]
+        }[direction];
+
+        while (true) {
+            const nextR = nr + step[0];
+            const nextC = nc + step[1];
+            const nextKey = getKey(nextR, nextC);
+            if (nextR < 0 || nextR >= ROWS || nextC < 0 || nextC >= COLS) break;
+            if (!tiles[nextKey]) {
+                tiles[nextKey] = { ...tile, row: nextR, col: nextC };
+                delete tiles[key];
+                nr = nextR;
+                nc = nextC;
+                moved = true;
+            } else if (tiles[nextKey].value === tile.value && !mergedPositions.has(nextKey)) {
+                tiles[nextKey].value *= 2;
+                delete tiles[key];
+                mergedPositions.add(nextKey);
+                moved = true;
+                break;
+            } else break;
+        }
+    });
+
+    if (moved) addRandomTile();
+    drawTiles();
+}
+
+function initGame() {
+    tiles = {};
+    addRandomTile();
+    addRandomTile();
+    drawTiles();
+}
+
+window.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft') move('left');
+    if (e.key === 'ArrowRight') move('right');
+    if (e.key === 'ArrowUp') move('up');
+    if (e.key === 'ArrowDown') move('down');
+});
+
+initGame();
+</script>
+</body>
+</html>
